@@ -1,0 +1,32 @@
+============================================================
+  STUDYBUDDY STUDY GUIDE
+============================================================
+
+Document: ml_intro.txt
+Generated: 2025-11-21 12:07:31
+
+SUMMARY
+------------------------------------------------------------
+machine learning is a subfield of artificial intelligence that focuses on building systems that learn from data. supervised learning uses labeled datasets, meaning each example includes the correct output. supervised learning uses data without explicit labels.
+
+STUDY QUESTIONS
+------------------------------------------------------------
+
+KEY CONCEPTS
+------------------------------------------------------------
+1. machine learning
+2. learning supervised
+3. learn data
+4. supervised
+5. clustering reinforcement
+6. supervised learning
+7. learning used
+8. learning reinforcement
+9. unsupervised learning
+10. reinforcement learning
+11. artificial intelligence
+12. reward machine
+13. learning unsupervised
+14. learning based
+15. learning models
+

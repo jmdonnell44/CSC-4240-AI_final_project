@@ -1,15 +1,24 @@
 ### Steps to install dependencies and run the program:
 
+## Python version:
+
+python version 3.11.4 is required to install the dependencies
+https://www.python.org/downloads/release/python-311x/
+python 3.13 will cause installation failures
+
 ### Install dependencies
 
+from project root
+
 ```bash
-pip install -r requirements.txt
+pip install -r documents/requirements.txt
 ```
 
 ### Install the spacy model
 
 ```bash
-python -m spacy download en_core_web_sm
+py -3.11 -m pip install "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl"
+
 ```
 
 
@@ -18,7 +27,7 @@ python -m spacy download en_core_web_sm
 Process a document and generate study materials:
 
 ```bash
-python main.py your_notes.pdf
+py -3.11 main.py ../documents/ml_intro.txt --chat
 ```
 
 What it does:
@@ -27,13 +36,13 @@ Extracts text from the PDF, generates a summary, creates 15 study questions, sav
 ### How to generate more questions
 
 ```bash
-python main.py your_notes.pdf -n 25
+py main.py your_notes.pdf -n 25
 ```
 
 ### How to access chat mode
 
 ```bash
-python main.py your_notes.pdf --chat
+py main.py your_notes.pdf --chat
 ```
 
 
@@ -43,13 +52,13 @@ Get additional questions, get summaries, view key concepts, and see statistics
 ### How to save to a different location
 
 ```bash
-python main.py my_notes.pdf -o output/study_guide.txt
+py main.py my_notes.pdf -o output/study_guide.txt
 ```
 
 ### How to run the program quietly (no output messages)
 
 ```bash
-python main.py my_notes.pdf -q
+py main.py my_notes.pdf -q
 ```
 
 ---

@@ -4,6 +4,7 @@ pdfplumber==0.10.3
 # NLP Processing
 spacy==3.7.2
 keybert==0.8.4
+en_core_web_sm==3.7.1
 
 # Machine Learning / Transformers
 transformers==4.35.0
@@ -14,6 +15,7 @@ sentence-transformers==2.2.2
 numpy==1.24.3
 nltk==3.8.1
 rouge-score==0.1.2
+protobuf<5
 
 # Progress bars
 tqdm==4.66.1
