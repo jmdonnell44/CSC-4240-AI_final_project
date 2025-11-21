@@ -1,0 +1,16 @@
+Neural networks are machine learning models inspired by the structure of the human brain.
+They are composed of layers of interconnected nodes called neurons. Each neuron receives
+inputs, applies a weighted sum, and then passes the result through a nonlinear activation
+function such as ReLU or sigmoid.
+
+A neural network typically includes three types of layers: an input layer, one or more
+hidden layers, and an output layer. The power of neural networks comes from the depth
+and number of hidden layers, allowing them to learn complex nonlinear functions.
+
+Training a neural network involves adjusting weights using backpropagation and gradient
+descent. The loss function measures the difference between the model’s predictions and
+the true values. Reducing the loss improves the accuracy of the model.
+
+Neural networks are widely used in image classification, natural language processing,
+medical diagnosis, and robotics. Deep learning, which refers to neural networks with
+many layers, has enabled breakthroughs such as large language models and systems like AlphaGo.

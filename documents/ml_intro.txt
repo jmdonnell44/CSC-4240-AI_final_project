@@ -1,0 +1,18 @@
+Machine learning is a subfield of artificial intelligence that focuses on building systems
+that learn from data. Rather than being explicitly programmed, machine learning models
+identify patterns within datasets and use those patterns to make predictions or decisions.
+
+There are three major categories of machine learning: supervised learning, unsupervised
+learning, and reinforcement learning. Supervised learning uses labeled datasets, meaning
+that each example includes the correct output. A common supervised learning example is
+predicting house prices based on features like size and location.
+
+Unsupervised learning uses data without explicit labels. The goal is to discover underlying
+structures such as clusters or associations. A popular algorithm is K-means clustering.
+
+Reinforcement learning is based on agents interacting with an environment and receiving
+rewards or penalties. Over time the agent learns which actions maximize reward.
+
+Machine learning is used in many real-world applications such as recommendation systems,
+fraud detection, self-driving vehicles, and speech recognition. As data continues to grow,
+machine learning has become essential to modern technology.
