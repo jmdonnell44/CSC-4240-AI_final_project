@@ -27,7 +27,7 @@ py -3.11 -m pip install "https://github.com/explosion/spacy-models/releases/down
 Process a document and generate study materials:
 
 ```bash
-py -3.11 main.py ../documents/ml_intro.txt --chat
+py -3.11 program/main.py /documents/ml_intro.txt --chat
 ```
 
 What it does:
@@ -36,13 +36,13 @@ Extracts text from the PDF, generates a summary, creates 15 study questions, sav
 ### How to generate more questions
 
 ```bash
-py main.py your_notes.pdf -n 25
+py program/main.py documents/your_notes.pdf -n 25
 ```
 
 ### How to access chat mode
 
 ```bash
-py main.py your_notes.pdf --chat
+py program/main.py documents/your_notes.pdf --chat
 ```
 
 
@@ -52,13 +52,13 @@ Get additional questions, get summaries, view key concepts, and see statistics
 ### How to save to a different location
 
 ```bash
-py main.py my_notes.pdf -o output/study_guide.txt
+py program/main.py documents/my_notes.pdf -o output/study_guide.txt
 ```
 
 ### How to run the program quietly (no output messages)
 
 ```bash
-py main.py my_notes.pdf -q
+py programs/main.py documents/my_notes.pdf -q
 ```
 
 ---
