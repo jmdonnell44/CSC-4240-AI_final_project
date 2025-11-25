@@ -7,6 +7,8 @@ Main pipeline orchestration and CLI entry point.
 import argparse
 import os
 import sys
+import re
+import textwrap
 from datetime import datetime
 
 from text_extractor import TextExtractor
@@ -53,7 +55,7 @@ class StudyBuddy:
         self.question_generator = SmartQuestionGenerator()
         
         if self.verbose:
-            print("\n✓ All components initialized successfully!\n")
+            print("\n[OK] All components initialized successfully!\n")
     
     def process_document(self, file_path: str, num_questions: int = 15):
         """
@@ -92,7 +94,7 @@ class StudyBuddy:
         self.processed_data = self.preprocessor.preprocess(self.document_text)
         
         if self.verbose:
-            print(f"✓ Created {self.processed_data['metadata']['total_chunks']} chunks")
+            print(f"[OK] Created {self.processed_data['metadata']['total_chunks']} chunks")
         
         # Step 3: Extract concepts
         if self.verbose:
@@ -105,38 +107,72 @@ class StudyBuddy:
         
         important_concepts = self.concept_extractor.get_important_concepts(
             self.processed_data['cleaned_text'],
-            top_n=15
+            top_n=20
         )
+        # Filter out incomplete/malformed concepts and deduplicate
+        seen_concepts = set()
+        filtered_concepts = []
+        for c in important_concepts:
+            c_lower = c.lower()
+            # Skip if already seen
+            if c_lower in seen_concepts:
+                continue
+            # Skip single incomplete words
+            if len(c.split()) == 1 and c_lower in ['neural', 'training', 'model', 'sigmoid', 'neurons', 'neuron']:
+                continue
+            # Skip if too short or contains weird artifacts
+            if len(c) < 4 or len(c.split()) > 5:
+                continue
+            seen_concepts.add(c_lower)
+            filtered_concepts.append(c)
+
+        important_concepts = filtered_concepts[:15]
         
-        # Step 4: Generate summary
+        # Step 4: Generate summary (grounded in source sentences to avoid contradictions)
         if self.verbose:
             print("\nStep 4/5: Generating summary...")
         
-        summary = self.summarizer.generate_overall_summary(
-            self.processed_data['cleaned_text'],
-            target_length=200
-        )
+        summary = self._build_grounded_summary(self.processed_data.get('sentences', []), max_items=6)
+        if not summary:
+            summary = self.summarizer.generate_overall_summary(
+                self.processed_data['cleaned_text'],
+                target_length=350
+            )
+            summary = self._augment_summary(summary, self.processed_data.get('sentences', []))
+            summary = self._normalize_summary(summary)
         
         if summary:
             if self.verbose:
-                print(f"✓ Generated summary ({len(summary.split())} words)")
+                print(f"[OK] Generated summary ({len(summary.split())} words)")
         else:
             summary = "Summary generation unavailable (model loading issue)."
             if self.verbose:
-                print("⚠ Summary generation skipped")
+                print("[WARN] Summary generation skipped")
         
         # Step 5: Generate questions
         if self.verbose:
             print(f"\nStep 5/5: Generating {num_questions} study questions...")
         
-        questions = self.question_generator.generate_questions_from_concepts(
+        questions, answers = self.question_generator.generate_question_answer_pairs(
             self.processed_data['cleaned_text'],
             important_concepts,
             max_questions=num_questions
         )
-        
-        # Filter duplicates
-        questions = self.question_generator.filter_duplicate_questions(questions)
+        if len(questions) < num_questions and len(answers) < num_questions:
+            # Backfill with simple questions if we somehow came up short
+            extras = self.question_generator.generate_simple_questions(
+                self.processed_data['cleaned_text'],
+                num_questions - len(questions)
+            )
+            questions.extend(extras)
+            answers.extend(["Answer unavailable."] * len(extras))
+        if len(answers) < len(questions):
+            answers.extend(["Answer unavailable."] * (len(questions) - len(answers)))
+        concept_details = self.question_generator.describe_concepts(
+            important_concepts,
+            self.processed_data['sentences']
+        )
+        concept_details = concept_details[:8]
         
         # Store results
         self.results = {
@@ -145,6 +181,8 @@ class StudyBuddy:
             'processed_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'summary': summary,
             'questions': questions,
+            'answers': answers,
+            'concept_details': concept_details,
             'concepts': important_concepts,
             'all_concepts_data': concepts_data,
             'statistics': {
@@ -153,13 +191,13 @@ class StudyBuddy:
                 'sentence_count': self.processed_data['metadata']['total_sentences'],
                 'chunk_count': self.processed_data['metadata']['total_chunks'],
                 'total_questions': len(questions),
-                'total_concepts': len(important_concepts)
+                'total_concepts': len(concept_details)
             }
         }
         
         if self.verbose:
             print("\n" + "="*60)
-            print("  ✓ Processing Complete!")
+            print("  [OK] Processing Complete!")
             print("="*60 + "\n")
         
         return self.results
@@ -175,27 +213,27 @@ class StudyBuddy:
         print("="*60 + "\n")
         
         # Summary
-        print("📋 SUMMARY")
+        print("SUMMARY")
         print("-" * 60)
-        print(self.results['summary'])
-        print()
-        
+        self._print_formatted_summary(self.results['summary'])
+
         # Questions
-        print("\n❓ STUDY QUESTIONS")
+        print("\nSTUDY QUESTIONS")
         print("-" * 60)
-        for i, question in enumerate(self.results['questions'], 1):
+        for i, (question, answer) in enumerate(zip(self.results['questions'], self.results.get('answers', [])), 1):
             print(f"{i:2d}. {question}")
+            print(f"    Answer: {answer}")
         print()
-        
+
         # Key concepts
-        print("\n🔑 KEY CONCEPTS")
+        print("\nKEY CONCEPTS")
         print("-" * 60)
-        for i, concept in enumerate(self.results['concepts'], 1):
-            print(f"{i:2d}. {concept}")
+        for i, item in enumerate(self.results.get('concept_details', []), 1):
+            print(f"{i:2d}. {item['description']}")
         print()
-        
+
         # Statistics
-        print("\n📊 STATISTICS")
+        print("\nSTATISTICS")
         print("-" * 60)
         stats = self.results['statistics']
         print(f"  Words: {stats['word_count']}")
@@ -229,21 +267,22 @@ class StudyBuddy:
                 
                 f.write("SUMMARY\n")
                 f.write("-"*60 + "\n")
-                f.write(self.results['summary'] + "\n\n")
+                f.write(self._format_summary_text(self.results['summary']))
+                f.write("\n")
                 
                 f.write("STUDY QUESTIONS\n")
                 f.write("-"*60 + "\n")
-                for i, q in enumerate(self.results['questions'], 1):
+                for i, (q, a) in enumerate(zip(self.results['questions'], self.results.get('answers', [])), 1):
                     f.write(f"{i}. {q}\n")
-                f.write("\n")
+                    f.write(f"   Answer: {a}\n\n")
                 
                 f.write("KEY CONCEPTS\n")
                 f.write("-"*60 + "\n")
-                for i, c in enumerate(self.results['concepts'], 1):
-                    f.write(f"{i}. {c}\n")
+                for item in self.results.get('concept_details', []):
+                    f.write(f"- {item['description']}\n")
                 f.write("\n")
             
-            print(f"✓ Results saved to: {output_file}")
+            print(f"[OK] Results saved to: {output_file}")
         
         except Exception as e:
             print(f"Error saving results: {e}")
@@ -260,6 +299,7 @@ class StudyBuddy:
         interface.set_context({
             'summary': self.results['summary'],
             'questions': self.results['questions'],
+            'answers': self.results.get('answers', []),
             'concepts': self.results['concepts'],
             'stats': self.results['statistics']
         })
@@ -275,6 +315,123 @@ class StudyBuddy:
         
         # Start the interface
         interface.start()
+    
+    def _augment_summary(self, summary: str, sentences: list) -> str:
+        """
+        Ensure the summary is sufficiently detailed by appending key sentences
+        when the generated summary is too short.
+        """
+        if not summary:
+            return ' '.join(sentences[:5]) if sentences else "Summary unavailable."
+        
+        word_count = len(summary.split())
+        if word_count >= 120:
+            return summary
+        
+        extras = []
+        for s in sentences:
+            if len(' '.join(extras + [s]).split()) + word_count > 200:
+                break
+            if s and s not in summary:
+                extras.append(s)
+        if extras:
+            return (summary.strip() + " " + ' '.join(extras)).strip()
+        return summary
+    
+    def _normalize_summary(self, summary: str) -> str:
+        """Deduplicate summary sentences and fix basic capitalization/punctuation."""
+        if not summary:
+            return "Summary unavailable."
+        
+        parts = [s.strip() for s in re.split(r'(?<=[.!?])\s+', summary) if s.strip()]
+        seen = set()
+        normalized = []
+        for idx, s in enumerate(parts):
+            key = s.lower().rstrip('.!?')
+            if key in seen:
+                continue
+            seen.add(key)
+            fixed = s.rstrip('.!?').strip()
+            if fixed:
+                paraphrased = self._paraphrase_sentence(fixed, idx)
+                normalized.append(paraphrased)
+        return ' '.join(normalized)
+    
+    def _build_grounded_summary(self, sentences: list, max_items: int = 5) -> str:
+        """Create a concise, non-contradictory summary from source sentences."""
+        if not sentences:
+            return ""
+        
+        unique = []
+        seen = set()
+        for s in sentences:
+            s_clean = s.strip()
+            key = s_clean.lower().rstrip('.!?')
+            if s_clean and key not in seen:
+                seen.add(key)
+                unique.append(s_clean)
+            if len(unique) >= max_items:
+                break
+        
+        paraphrased = []
+        for idx, s in enumerate(unique):
+            paraphrased.append(self._paraphrase_sentence(s, idx))
+        
+        return ' '.join(paraphrased)
+    
+    def _paraphrase_sentence(self, sentence: str, variant_index: int = 0) -> str:
+        """Lightly rephrase a sentence to avoid mirroring source wording."""
+        content = sentence.strip().rstrip('.!?')
+        if not content:
+            return ""
+
+        # Keep paraphrasing minimal and direct to avoid repetitive prefixes
+        content_lower = content[0].lower() + content[1:] if len(content) > 1 else content.lower()
+        paraphrased_content = self._apply_paraphrasing_rules(content_lower)
+        # Simple sentence with capitalization
+        paraphrased = paraphrased_content.capitalize()
+        if not paraphrased.endswith('.'):
+            paraphrased += '.'
+        return paraphrased
+
+    def _apply_paraphrasing_rules(self, text: str) -> str:
+        """Apply basic paraphrasing rules to avoid verbatim copying."""
+        # Dictionary of common word substitutions
+        substitutions = {
+            r'\bcomposed of\b': 'made up of',
+            r'\bincludes\b': 'contains',
+            r'\binvolves\b': 'requires',
+            r'\ballowing them to\b': 'which enables them to',
+            r'\bcomes from\b': 'originates from',
+            r'\bwidely used in\b': 'commonly applied to',
+            r'\bmeasures\b': 'quantifies',
+            r'\breducing\b': 'minimizing',
+            r'\bimproving\b': 'enhancing'
+        }
+
+        result = text
+        for pattern, replacement in substitutions.items():
+            result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+
+        return result
+    
+    def _format_summary_text(self, summary: str) -> str:
+        """Return a neatly formatted summary string for saving."""
+        if not summary:
+            return "Summary unavailable.\n"
+        
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', summary) if s.strip()]
+        paragraph = ' '.join(sentences).strip()
+        if not paragraph.endswith('.'):
+            paragraph += '.'
+        # Wrap to a reasonable width for readability
+        wrapped = textwrap.fill(paragraph, width=88)
+        return wrapped + "\n"
+    
+    def _print_formatted_summary(self, summary: str):
+        """Print summary as a clean paragraph."""
+        formatted = self._format_summary_text(summary).strip()
+        print(formatted)
 
 
 def main():
@@ -292,8 +449,8 @@ Examples:
     )
     
     parser.add_argument('file', help='Path to the document file (PDF or TXT)')
-    parser.add_argument('-n', '--num-questions', type=int, default=15,
-                       help='Number of questions to generate (default: 15)')
+    parser.add_argument('-n', '--num-questions', type=int, default=5,
+                       help='Number of questions to generate (default: 5)')
     parser.add_argument('-o', '--output', help='Output file path')
     parser.add_argument('-q', '--quiet', action='store_true',
                        help='Suppress progress messages')
@@ -303,15 +460,18 @@ Examples:
                        help='Start interactive chat after processing')
     
     args = parser.parse_args()
-    
+
     # Create StudyBuddy instance
     app = StudyBuddy(verbose=not args.quiet)
-    
+
     # Initialize
     app.initialize()
-    
+
+    # If chat mode is activated, generate only 5 questions initially
+    num_questions = 5 if args.chat else args.num_questions
+
     # Process document
-    results = app.process_document(args.file, num_questions=args.num_questions)
+    results = app.process_document(args.file, num_questions=num_questions)
     
     if not results:
         sys.exit(1)
@@ -328,7 +488,7 @@ Examples:
     if args.chat:
         app.start_chat()
     
-    print("\n✓ StudyBuddy finished successfully!")
+    print("\n[OK] StudyBuddy finished successfully!")
 
 
 if __name__ == "__main__":

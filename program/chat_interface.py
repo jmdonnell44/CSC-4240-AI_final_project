@@ -87,12 +87,12 @@ class ChatInterface:
     def show_help(self, user_input: str = ""):
         """Display help information."""
         print("\nStudyBuddy: Here are the commands I understand:\n")
-        print("  📝 summary [topic]    - Get a summary (optionally about a specific topic)")
-        print("  ❓ questions [n]      - Generate n more questions (default: 5)")
-        print("  🔑 concepts           - Show extracted key concepts")
-        print("  📊 stats              - Show document statistics")
-        print("  ❔ help               - Show this help message")
-        print("  🚪 exit/quit          - Exit StudyBuddy")
+        print("  summary [topic]    - Get a summary (optionally about a specific topic)")
+        print("  questions [n]      - Generate n more questions (default: 5)")
+        print("  concepts           - Show extracted key concepts")
+        print("  stats              - Show document statistics")
+        print("  help               - Show this help message")
+        print("  exit/quit          - Exit StudyBuddy")
         print("\nYou can also ask naturally, like:")
         print("  • 'Give me 10 more questions'")
         print("  • 'Summarize the main ideas'")
@@ -153,7 +153,7 @@ class ChatInterface:
     
     def exit_chat(self, user_input: str = ""):
         """Exit the chat interface."""
-        print("\nStudyBuddy: Thanks for studying with me! Good luck! 📚\n")
+        print("\nStudyBuddy: Thanks for studying with me! Good luck!\n")
         self.running = False
     
     def set_context(self, context: Dict):

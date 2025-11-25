@@ -33,7 +33,7 @@ class Summarizer:
             print(f"Loading {self.model_name} model for summarization...")
             self.tokenizer = T5Tokenizer.from_pretrained(self.model_name)
             self.model = T5ForConditionalGeneration.from_pretrained(self.model_name)
-            print(f"✓ {self.model_name} model loaded")
+            print(f"[OK] {self.model_name} model loaded")
         except Exception as e:
             print(f"Error loading model: {e}")
     
@@ -110,7 +110,7 @@ class Summarizer:
                 if i % 5 == 0:
                     print(f"  Processed {i}/{len(chunks)} chunks")
         
-        print(f"✓ Generated {len(summaries)} summaries")
+        print(f"[OK] Generated {len(summaries)} summaries")
         return summaries
     
     def generate_overall_summary(self, text: str, target_length: int = 200) -> str:

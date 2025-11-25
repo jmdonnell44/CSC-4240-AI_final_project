@@ -61,7 +61,7 @@ class TextExtractor:
                     if page_num % 10 == 0:
                         print(f"Processed {page_num}/{len(pdf.pages)} pages")
             
-            print(f"✓ Successfully extracted {len(text)} characters from PDF")
+            print(f"[OK] Successfully extracted {len(text)} characters from PDF")
             return text.strip()
         
         except Exception as e:
@@ -82,7 +82,7 @@ class TextExtractor:
             with open(txt_path, 'r', encoding='utf-8') as f:
                 text = f.read()
             
-            print(f"✓ Successfully read {len(text)} characters from text file")
+            print(f"[OK] Successfully read {len(text)} characters from text file")
             return text.strip()
         
         except Exception as e:
